@@ -1,33 +1,92 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import { View, StyleSheet, Text } from "react-native";
+import MapView, { Marker, Polyline, Region } from "react-native-maps";
 
-// Sample coordinates for start, middle (optional), and end locations
-const route = [
-  { latitude: 37.7749, longitude: -122.4194 }, // San Francisco (Start)
-  { latitude: 36.7783, longitude: -119.4179 }, // Central California (Middle)
-  { latitude: 34.0522, longitude: -118.2437 }, // Los Angeles (End)
-];
+// Type for the route coordinate object
+interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
 
 const App: React.FC = () => {
-  const [driverLocation, setDriverLocation] = useState<any | null>(null); // Driver's location
-  const [routeCoordinates, setRouteCoordinates] = useState<any[]>(route); // Predefined route coordinates
-  const [driverProgress, setDriverProgress] = useState<number>(0); // Progress along the route
+  const [driverLocation, setDriverLocation] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
+  const [driverProgress, setDriverProgress] = useState<number>(0);
+  const [currentWaypointIndex, setCurrentWaypointIndex] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Loading state for the route data
 
-  const [currentWaypointIndex, setCurrentWaypointIndex] = useState<number>(0); // Current waypoint index
+  // Function to get route from TomTom API
+  const getRouteFromTomTom = async (
+    start: Coordinate,
+    end: Coordinate
+  ): Promise<Coordinate[]> => {
+    const origin = `${start.latitude},${start.longitude}`;
+    const destination = `${end.latitude},${end.longitude}`;
+    const apiKey = "7zmNwV5XQGs5II7Z7KxIp9K551ZlFAwV"; // Replace with your actual TomTom API key
 
-  // Update the driver's position along the route at regular intervals
+    try {
+      const response = await fetch(
+        `https://api.tomtom.com/routing/1/calculateRoute/${origin}:${destination}/json?key=${apiKey}`
+      );
+      const data = await response.json();
+
+      if (data.routes && data.routes.length > 0) {
+        // Get the route's coordinates directly from the response
+        const coordinates = data.routes[0].legs[0].points;
+        return coordinates; // Return the decoded coordinates
+      } else {
+        console.error("Error fetching route:", data);
+        return [];
+      }
+    } catch (error) {
+      console.error("Failed to fetch route from TomTom:", error);
+      return [];
+    }
+  };
+
+  // Effect to fetch the route when component mounts
   useEffect(() => {
+    const start: Coordinate = { latitude: 10.781975, longitude: 106.664512 }; // Example start location
+    const end: Coordinate = { latitude: 10.777965, longitude: 106.670966 }; // Example end location
+
+    getRouteFromTomTom(start, end).then((route) => {
+      if (route.length > 0) {
+        setRouteCoordinates(route);
+        setIsLoading(false); // Stop loading when the route is fetched
+      }
+    });
+  }, []);
+
+  // Calculate the region for the map view
+  const calculateRegion = (): Region => {
+    const start = routeCoordinates[0];
+    const end = routeCoordinates[routeCoordinates.length - 1];
+    const latitude = (start.latitude + end.latitude) / 2;
+    const longitude = (start.longitude + end.longitude) / 2;
+    const latitudeDelta = Math.abs(start.latitude - end.latitude) * 1.5;
+    const longitudeDelta = Math.abs(start.longitude - end.longitude) * 1.5;
+
+    return {
+      latitude,
+      longitude,
+      latitudeDelta,
+      longitudeDelta,
+    };
+  };
+
+  // Effect to update the driver's location
+  useEffect(() => {
+    if (routeCoordinates.length === 0) return; // Guard clause to prevent error when route is empty
+
     const driverMovementInterval = setInterval(() => {
       if (currentWaypointIndex < routeCoordinates.length - 1) {
-        // Get the next waypoint
         const startPoint = routeCoordinates[currentWaypointIndex];
         const endPoint = routeCoordinates[currentWaypointIndex + 1];
+        const progress = driverProgress + 0.01;
 
-        // Move the driver smoothly from current waypoint to next waypoint
-        const progress = driverProgress + 0.01; // Move 1% towards the next point
-
-        // Calculate driver's position using linear interpolation (lerp)
         const currentLatitude = lerp(
           startPoint.latitude,
           endPoint.latitude,
@@ -39,74 +98,73 @@ const App: React.FC = () => {
           progress
         );
 
-        // Set the driver's new position
-        setDriverLocation({
-          lat: currentLatitude,
-          lon: currentLongitude,
-        });
+        setDriverLocation({ lat: currentLatitude, lon: currentLongitude });
 
         if (progress >= 1) {
-          // If the driver reaches the next waypoint, move to the next segment
-          setDriverProgress(0); // Reset progress for the next segment
-          setCurrentWaypointIndex(currentWaypointIndex + 1); // Move to the next waypoint
+          setDriverProgress(0);
+          setCurrentWaypointIndex(currentWaypointIndex + 1);
         } else {
-          setDriverProgress(progress); // Continue moving towards the next point
+          setDriverProgress(progress);
         }
       }
-    }, 50); // Update position every 50ms
+    }, 100);
 
     return () => {
-      clearInterval(driverMovementInterval); // Clean up interval on unmount
+      clearInterval(driverMovementInterval);
     };
   }, [driverProgress, currentWaypointIndex, routeCoordinates]);
 
-  // Linear interpolation function
-  const lerp = (start: number, end: number, progress: number) => {
+  // Linear interpolation function for smooth movement
+  const lerp = (start: number, end: number, progress: number): number => {
     return start + (end - start) * progress;
   };
 
+  // Unconditionally render the hooks by always showing the MapView component,
+  // but we control rendering different content inside it with the loading state.
   return (
     <View style={{ flex: 1 }}>
-      <MapView
-        style={styles.map}
-        region={{
-          latitude: (route[0].latitude + route[route.length - 1].latitude) / 2,
-          longitude:
-            (route[0].longitude + route[route.length - 1].longitude) / 2,
-          latitudeDelta: 0.1, // Higher values will zoom out and reduce the map's resolution
-          longitudeDelta: 0.1, // Higher values will zoom out
-        }}
-        mapType="standard" // Lower-res map type
-      >
-        {/* Start Location Pin */}
-        <Marker coordinate={route[0]} title="Start Location" pinColor="green" />
-
-        {/* End Location Pin */}
-        <Marker
-          coordinate={route[route.length - 1]}
-          title="End Location"
-          pinColor="red"
-        />
-
-        {/* Draw the route using Polyline */}
-        <Polyline
-          coordinates={routeCoordinates}
-          strokeColor="#FF0000"
-          strokeWidth={4}
-        />
-
-        {/* Simulate Driver's real-time location */}
-        {driverLocation && (
+      {isLoading ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text>Loading...</Text>
+        </View>
+      ) : (
+        <MapView style={styles.map} region={calculateRegion()}>
+          {/* Start Marker */}
           <Marker
-            coordinate={{
-              latitude: driverLocation.lat,
-              longitude: driverLocation.lon,
-            }}
-            title="Driver's Location"
-            pinColor="blue"
+            coordinate={routeCoordinates[0]}
+            title="Start"
+            pinColor="green"
           />
-        )}
-      </MapView>
+
+          {/* End Marker */}
+          <Marker
+            coordinate={routeCoordinates[routeCoordinates.length - 1]}
+            title="End"
+            pinColor="red"
+          />
+
+          {/* Polyline for the route */}
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#FF0000"
+            strokeWidth={4}
+          />
+
+          {/* Driver's location Marker */}
+          {driverLocation && (
+            <Marker
+              coordinate={{
+                latitude: driverLocation.lat,
+                longitude: driverLocation.lon,
+              }}
+              title="Driver's Location"
+              pinColor="blue"
+            />
+          )}
+        </MapView>
+      )}
     </View>
   );
 };
