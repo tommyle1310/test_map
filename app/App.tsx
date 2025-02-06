@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Image } from "react-native";
 import MapView, { Marker, Polyline, Region } from "react-native-maps";
 
 // Type for the route coordinate object
@@ -50,7 +50,10 @@ const App: React.FC = () => {
   // Effect to fetch the route when component mounts
   useEffect(() => {
     const start: Coordinate = { latitude: 10.781975, longitude: 106.664512 }; // Example start location
-    const end: Coordinate = { latitude: 10.777965, longitude: 106.670966 }; // Example end location
+    const end: Coordinate = {
+      latitude: 12.253479988884011,
+      longitude: 109.19216280504887,
+    }; // Example end location
 
     getRouteFromTomTom(start, end).then((route) => {
       if (route.length > 0) {
@@ -132,25 +135,27 @@ const App: React.FC = () => {
       ) : (
         <MapView style={styles.map} region={calculateRegion()}>
           {/* Start Marker */}
-          <Marker
-            coordinate={routeCoordinates[0]}
-            title="Start"
-            pinColor="green"
-          />
+          <Marker coordinate={routeCoordinates[0]} title="Start">
+            <Image
+              source={{
+                uri: "https://res.cloudinary.com/dlavqnrlx/image/upload/v1738823719/y3enpxwt8ankdbourzse.png",
+              }}
+              style={{ width: 40, height: 40 }} // Resize the image
+            />
+          </Marker>
 
           {/* End Marker */}
           <Marker
             coordinate={routeCoordinates[routeCoordinates.length - 1]}
             title="End"
-            pinColor="red"
-          />
-
-          {/* Polyline for the route */}
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#FF0000"
-            strokeWidth={4}
-          />
+          >
+            <Image
+              source={{
+                uri: "https://res.cloudinary.com/dlavqnrlx/image/upload/v1738823283/ybntvkauzjijxexnsjh2.png",
+              }}
+              style={{ width: 40, height: 40 }} // Resize the image
+            />
+          </Marker>
 
           {/* Driver's location Marker */}
           {driverLocation && (
@@ -160,9 +165,22 @@ const App: React.FC = () => {
                 longitude: driverLocation.lon,
               }}
               title="Driver's Location"
-              pinColor="blue"
-            />
+            >
+              <Image
+                source={{
+                  uri: "https://res.cloudinary.com/dlavqnrlx/image/upload/v1738822195/p4l4v3g3fouypc7ycrqf.png",
+                }}
+                style={{ width: 30, height: 30 }} // Resize the image
+              />
+            </Marker>
           )}
+
+          {/* Polyline for the route */}
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#bf59fe"
+            strokeWidth={4}
+          />
         </MapView>
       )}
     </View>

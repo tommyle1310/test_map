@@ -1,48 +1,67 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, TextInput, FlatList, Text } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  FlatList,
+  Text,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from "react-native";
 import { SuggestionListItem } from "./SuggestionListItem";
 
-// Define the type for props
 interface SuggestionsProps {
   placeholder: string;
   showList: boolean;
-  suggestionListData: any[]; // You can create a more specific type for the items in the suggestion list
+  suggestionListData: any[];
   onPressItem: (item: any) => void;
   handleSearchTextChange: (text: string) => void;
 }
 
 const Suggestions: React.FC<SuggestionsProps> = (props) => {
-  // Define the type for the ref object to handle the TextInput reference
   const searchInputRef = useRef<TextInput>(null);
 
+  // Handle item press from suggestion list
   const handleOnPressItem = (item: any) => {
     searchInputRef.current?.blur(); // Remove focus from the search input
     props.onPressItem(item); // Trigger the callback on item press
   };
 
+  // Close the suggestion list and dismiss keyboard when tapping outside
+  const handleDismissSuggestions = () => {
+    props.onPressItem(null); // Optionally you can pass null or any other callback to close the suggestions
+    Keyboard.dismiss(); // Close the keyboard
+  };
+
   return (
-    <View style={styles.suggestionListContainer}>
-      <TextInput
-        ref={searchInputRef}
-        style={styles.searchInput}
-        placeholder={props.placeholder}
-        onChangeText={props.handleSearchTextChange}
-      />
-      {props.showList && (
-        <FlatList
-          style={styles.searchList}
-          data={props.suggestionListData}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <SuggestionListItem onPressItem={handleOnPressItem} item={item} />
+    <TouchableWithoutFeedback onPress={handleDismissSuggestions}>
+      <View style={styles.suggestionListContainer}>
+        <View>
+          {/* Wrap everything in a single <View> to avoid the error */}
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder={props.placeholder}
+            onChangeText={props.handleSearchTextChange}
+          />
+          {props.showList && (
+            <FlatList
+              style={styles.searchList}
+              data={props.suggestionListData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <SuggestionListItem
+                  onPressItem={handleOnPressItem}
+                  item={item}
+                />
+              )}
+            />
           )}
-        />
-      )}
-    </View>
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
-
-export default Suggestions;
 
 const styles = StyleSheet.create({
   searchInput: {
@@ -62,3 +81,5 @@ const styles = StyleSheet.create({
     maxHeight: 200, // Limit list height
   },
 });
+
+export default Suggestions;

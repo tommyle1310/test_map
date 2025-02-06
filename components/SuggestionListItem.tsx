@@ -1,5 +1,3 @@
-// SuggestionListItem.js
-
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
