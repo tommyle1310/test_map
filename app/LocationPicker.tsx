@@ -19,7 +19,6 @@ const MapWithSearch: React.FC = () => {
 
   const tomtomKey = "7zmNwV5XQGs5II7Z7KxIp9K551ZlFAwV"; // Your TomTom API key
 
-  // Function to fetch location suggestions from TomTom API
   const handleSearchTextChange = (changedSearchText: string) => {
     if (!changedSearchText || changedSearchText.length < 3) {
       setSuggestionsData([]); // Optionally clear suggestions when input is invalid
@@ -30,7 +29,6 @@ const MapWithSearch: React.FC = () => {
     setSearchText(changedSearchText);
   };
 
-  // Throttle search text updates to only trigger the request when the user stops typing for a while
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchText !== lastSearchText) {
@@ -42,7 +40,6 @@ const MapWithSearch: React.FC = () => {
     return () => clearTimeout(timer); // Clean up timer on re-render
   }, [searchText]);
 
-  // Now use debouncedSearchText in your API call function
   useEffect(() => {
     if (!debouncedSearchText || debouncedSearchText.length < 3) return;
 
@@ -105,7 +102,6 @@ const MapWithSearch: React.FC = () => {
 
   const mapViewRef = React.useRef<MapView | null>(null); // Ref to the MapView
 
-  // Get the user's current location using Expo Location API
   useEffect(() => {
     const getLocation = async () => {
       // Ask for permission to access the location
@@ -143,8 +139,8 @@ const MapWithSearch: React.FC = () => {
         region={{
           latitude: selectedLocation?.lat || 0,
           longitude: selectedLocation?.lng || 0,
-          latitudeDelta: 0.001,
-          longitudeDelta: 0.001,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
         }}
         onPress={handleMapPress} // Handle map press event
       >

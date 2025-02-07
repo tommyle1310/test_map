@@ -9,8 +9,9 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import * as SplashScreen from "expo-splash-screen";
-import App from "./App";
+import App from "./CalculateRoute";
 import LocationPicker from "./LocationPicker";
+import NearbySearchMap from "./NearbySearch";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,7 +27,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       {/* <App /> */}
-      <LocationPicker />
+      {/* <LocationPicker /> */}
+      <NearbySearchMap selectedLocation={{ lat: 10.816717, lng: 106.627072 }} />
       <StatusBar style="auto" />
     </ThemeProvider>
   );
